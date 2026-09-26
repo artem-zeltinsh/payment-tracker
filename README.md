@@ -1,1 +1,1 @@
-# hit-counter
+# Payment tracker
