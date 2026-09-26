@@ -6,7 +6,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ConcurrentMap;
 
 public class PaymentTracker {
-    private ConcurrentMap<String, Queue<Transaction>> history;
+    private final ConcurrentMap<String, Queue<Transaction>> history;
 
     public PaymentTracker() {
         this.history = new ConcurrentHashMap<>();
@@ -25,7 +25,7 @@ public class PaymentTracker {
             throw new IllegalArgumentException("amount should be larger than or equal to 0");
         }
 
-        Queue<Transaction> transactions = history.computeIfAbsent(cardId, k -> new ConcurrentLinkedQueue<>());
+        Queue<Transaction> transactions = history.computeIfAbsent(cardId, _ -> new ConcurrentLinkedQueue<>());
 
         Transaction transaction = new Transaction(timestampMillis, amount);
         transactions.add(transaction);

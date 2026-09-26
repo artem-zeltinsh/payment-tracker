@@ -64,8 +64,8 @@ public class PaymentTrackerTest {
         paymentTracker.registerPayment("1", currentTimeMillis, 2.0);
         paymentTracker.registerPayment("2", currentTimeMillis, 1.5);
 
-        assertEquals(paymentTracker.getCardCountInLastXSeconds("1", currentTimeMillis, 1), 2);
-        assertEquals(paymentTracker.getCardCountInLastXSeconds("2", currentTimeMillis,2), 1);
-        assertEquals(paymentTracker.getCardCountInLastXSeconds("3", currentTimeMillis, 2), 0);
+        assertEquals(2, paymentTracker.getCardCountInLastXSeconds("1", currentTimeMillis, 1));
+        assertEquals(1, paymentTracker.getCardCountInLastXSeconds("2", currentTimeMillis,2));
+        assertEquals(0, paymentTracker.getCardCountInLastXSeconds("3", currentTimeMillis, 2));
     }
 }
