@@ -15,14 +15,14 @@ public class PaymentTracker {
     private record Transaction(long timestampMillis, double amount) { }
 
     public void registerPayment(String cardId, long timestampMillis, double amount) {
-        if (cardId == null || cardId.trim().isEmpty()) {
-            throw new IllegalArgumentException("cardId should not be empty");
+        if (cardId == null || cardId.isBlank()) {
+            throw new IllegalArgumentException("cardId should not be blank");
         }
         if (timestampMillis <= 0) {
-            throw new IllegalArgumentException("timestampMillis should not be larger then 0");
+            throw new IllegalArgumentException("timestampMillis should be greater than 0");
         }
         if (amount < 0) {
-            throw new IllegalArgumentException("amount should be larger than or equal to 0");
+            throw new IllegalArgumentException("amount should be greater than or equal to 0");
         }
 
         Queue<Transaction> transactions = history.computeIfAbsent(cardId, _ -> new ConcurrentLinkedQueue<>());
@@ -32,14 +32,14 @@ public class PaymentTracker {
     }
 
     public int getCardCountInLastXSeconds(String cardId, long currentTimeMillis, int seconds) {
-        if (cardId == null || cardId.isEmpty()) {
-            throw new IllegalArgumentException("cardId should not be empty");
+        if (cardId == null || cardId.isBlank()) {
+            throw new IllegalArgumentException("cardId should not be blank");
         }
         if (currentTimeMillis <= 0) {
-            throw new IllegalArgumentException("currentTimeMillis should not be larger then 0");
+            throw new IllegalArgumentException("currentTimeMillis should be greater than 0");
         }
         if (seconds <= 0) {
-            throw new IllegalArgumentException("seconds should not be larger then 0");
+            throw new IllegalArgumentException("seconds should be greater than 0");
         }
 
         Queue<Transaction> transactionsByCard = history.get(cardId);
