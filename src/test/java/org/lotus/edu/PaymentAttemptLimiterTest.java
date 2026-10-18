@@ -20,7 +20,7 @@ public class PaymentAttemptLimiterTest {
     @Test
     void whenAccountIdIsPresent_thenIsAllowedShouldReturnTrueUntilMaxAttemptsReached() throws InterruptedException {
         int threadCount = 20;
-        String account = "acc101";
+        String cardToken = "token101";
 
         PaymentAttemptLimiter paymentAttemptLimiter = new PaymentAttemptLimiter(1000L, 5);
 
@@ -30,7 +30,7 @@ public class PaymentAttemptLimiterTest {
         CountDownLatch latch = new CountDownLatch(threadCount);
 
         Runnable checkPaymentTask = () -> {
-            if (paymentAttemptLimiter.isAllowed(account)) {
+            if (paymentAttemptLimiter.isAllowed(cardToken)) {
                 successCount.increment();
             } else {
                 failureCount.increment();

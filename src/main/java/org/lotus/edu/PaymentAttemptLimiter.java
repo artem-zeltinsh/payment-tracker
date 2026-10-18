@@ -8,7 +8,7 @@ public class PaymentAttemptLimiter {
     private final long windowSizeMillis;
     private final int maxAllowedAttempts;
 
-    private final ConcurrentHashMap<String, Deque> historyMap;
+    private final ConcurrentHashMap<String, Deque<Long>> historyMap;
 
     public PaymentAttemptLimiter(long windowSizeMillis, int maxAllowedAttempts) {
         this.windowSizeMillis = windowSizeMillis;
@@ -16,13 +16,13 @@ public class PaymentAttemptLimiter {
         this.historyMap = new ConcurrentHashMap<>();
     }
 
-    public boolean isAllowed(String accountId) {
-        if (accountId == null || accountId.isBlank()) {
-            throw new IllegalArgumentException("accountId is null or blank");
+    public boolean isAllowed(String cardToken) {
+        if (cardToken == null || cardToken.isBlank()) {
+            throw new IllegalArgumentException("cardToken should not be null or blank");
         }
 
         long currentTimeMillis = System.currentTimeMillis();
-        Deque<Long> timestamps = historyMap.computeIfAbsent(accountId, _ -> new ArrayDeque());
+        Deque<Long> timestamps = historyMap.computeIfAbsent(cardToken, _ -> new ArrayDeque<>());
 
         synchronized (timestamps) {
             long cutoffTime = currentTimeMillis - windowSizeMillis;
