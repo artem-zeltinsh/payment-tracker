@@ -2,11 +2,11 @@ package org.lotus.edu;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class PaymentTracker {
-    private final ConcurrentMap<String, Queue<Transaction>> history;
+    private final ConcurrentMap<String, Deque<Transaction>> history;
 
     public PaymentTracker() {
         this.history = new ConcurrentHashMap<>();
@@ -25,10 +25,14 @@ public class PaymentTracker {
             throw new IllegalArgumentException("amount should be greater than or equal to 0");
         }
 
-        Queue<Transaction> transactions = history.computeIfAbsent(cardId, _ -> new ConcurrentLinkedQueue<>());
-
         Transaction transaction = new Transaction(timestampMillis, amount);
-        transactions.add(transaction);
+        history.compute(cardId, (_, deque) -> {
+            if (deque == null) {
+                deque = new ArrayDeque<>();
+            }
+            deque.addLast(transaction);
+            return deque;
+        });
     }
 
     public int getCardCountInLastXSeconds(String cardId, long currentTimeMillis, int seconds) {
@@ -42,19 +46,34 @@ public class PaymentTracker {
             throw new IllegalArgumentException("seconds should be greater than 0");
         }
 
-        Queue<Transaction> transactionsByCard = history.get(cardId);
-        if (transactionsByCard == null) {
-            return 0;
-        }
-
         final long durationInMillis = seconds * 1000L;
-        final long cutoffTime = currentTimeMillis - durationInMillis;
+        final long cutoffTimeMillis = currentTimeMillis - durationInMillis;
 
-        synchronized (transactionsByCard) {
-            while (!transactionsByCard.isEmpty() && transactionsByCard.peek().timestampMillis < cutoffTime) {
-                transactionsByCard.poll();
+        AtomicInteger count = new AtomicInteger(0);
+        history.computeIfPresent(cardId, (_, deque) -> {
+            int matches = 0;
+            for (Transaction transaction : deque) {
+                if (transaction.timestampMillis() >= cutoffTimeMillis && transaction.timestampMillis() <= currentTimeMillis) {
+                    matches += 1;
+                }
             }
-            return transactionsByCard.size();
+            count.set(matches);
+            return deque;
+        });
+        return count.get();
+    }
+
+    public void evictOlderThanXSeconds(long currentTimeMillis, long seconds) {
+        if (seconds <= 0) {
+            throw new IllegalArgumentException("seconds should be greater than 0");
+        }
+        final long cutoffTimeMillis = currentTimeMillis - seconds * 1000L;
+
+        for (String cardId : history.keySet()) {
+            history.computeIfPresent(cardId, (_, deque) -> {
+                deque.removeIf(t -> t.timestampMillis() < cutoffTimeMillis);
+                return deque.isEmpty() ? null : deque;
+            });
         }
     }
 }
