@@ -15,9 +15,9 @@ public class PaymentTracker {
     private record Transaction(long timestampMillis, double amount) { }
 
     public void registerPayment(String cardId, long timestampMillis, double amount) {
-        requireNotBlank(cardId, "cardId should not be blank");
-        requirePositive(timestampMillis, "timestampMillis should be greater than 0");
-        requireNotNegative(amount, "amount should be greater than or equal to 0");
+        checkArgument(cardId != null && !cardId.isBlank(), "cardId should not be blank");
+        checkArgument(timestampMillis > 0, "timestampMillis should be greater than 0");
+        checkArgument(amount > 0, "amount should be greater than or equal to 0");
 
         Transaction transaction = new Transaction(timestampMillis, amount);
         history.compute(cardId, (_, deque) -> {
@@ -30,9 +30,9 @@ public class PaymentTracker {
     }
 
     public int getCardCountInLastXSeconds(String cardId, long currentTimeMillis, int seconds) {
-        requireNotBlank(cardId, "cardId should not be blank");
-        requirePositive(currentTimeMillis, "currentTimeMillis should be greater than 0");
-        requirePositive(seconds, "seconds should be greater than 0");
+        checkArgument(cardId != null && !cardId.isBlank(), "cardId should not be blank");
+        checkArgument(currentTimeMillis > 0, "currentTimeMillis should be greater than 0");
+        checkArgument(seconds > 0, "seconds should be greater than 0");
 
         final long durationInMillis = seconds * 1000L;
         final long cutoffTimeMillis = currentTimeMillis - durationInMillis;
@@ -50,8 +50,8 @@ public class PaymentTracker {
     }
 
     public void evictOlderThanXSeconds(long currentTimeMillis, long seconds) {
-        requirePositive(currentTimeMillis, "currentTimeMillis should be greater than 0");
-        requirePositive(seconds, "seconds should be greater than 0");
+        checkArgument(currentTimeMillis > 0, "currentTimeMillis should be greater than 0");
+        checkArgument(seconds > 0, "seconds should be greater than 0");
 
         final long cutoffTimeMillis = currentTimeMillis - seconds * 1000L;
         for (String cardId : history.keySet()) {
@@ -62,21 +62,9 @@ public class PaymentTracker {
         }
     }
 
-    private static void requireNotBlank(String param, String message) {
-        if (param == null || param.isBlank()) {
-            throw new IllegalArgumentException(message);
-        }
-    }
-
-    private static void requirePositive(long param, String message) {
-        if (param <= 0) {
-            throw new IllegalArgumentException(message);
-        }
-    }
-
-    private static void requireNotNegative(double param, String message) {
-        if (param < 0) {
-            throw new IllegalArgumentException(message);
+    private static void checkArgument(boolean expression, String errorMessage) {
+        if (!expression) {
+            throw new IllegalArgumentException(errorMessage);
         }
     }
 }
