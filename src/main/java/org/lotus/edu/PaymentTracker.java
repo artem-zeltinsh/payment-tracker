@@ -5,6 +5,9 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
+/**
+ * Thread-safe payment tracker that keeps track of the payment history for each card token.
+ */
 public class PaymentTracker {
     private final ConcurrentMap<String, Deque<Transaction>> history;
 
@@ -14,13 +17,13 @@ public class PaymentTracker {
 
     private record Transaction(long timestampMillis, double amount) { }
 
-    public void registerPayment(String cardId, long timestampMillis, double amount) {
-        checkArgument(cardId != null && !cardId.isBlank(), "cardId should not be blank");
+    public void registerPayment(String cardToken, long timestampMillis, double amount) {
+        checkArgument(cardToken != null && !cardToken.isBlank(), "cardToken should not be blank");
         checkArgument(timestampMillis > 0, "timestampMillis should be greater than 0");
         checkArgument(amount > 0, "amount should be greater than or equal to 0");
 
         Transaction transaction = new Transaction(timestampMillis, amount);
-        history.compute(cardId, (_, deque) -> {
+        history.compute(cardToken, (_, deque) -> {
             if (deque == null) {
                 deque = new ArrayDeque<>();
             }
@@ -29,8 +32,8 @@ public class PaymentTracker {
         });
     }
 
-    public int getCardCountInLastXSeconds(String cardId, long currentTimeMillis, int seconds) {
-        checkArgument(cardId != null && !cardId.isBlank(), "cardId should not be blank");
+    public int getCardCountInLastXSeconds(String cardToken, long currentTimeMillis, int seconds) {
+        checkArgument(cardToken != null && !cardToken.isBlank(), "cardToken should not be blank");
         checkArgument(currentTimeMillis > 0, "currentTimeMillis should be greater than 0");
         checkArgument(seconds > 0, "seconds should be greater than 0");
 
@@ -38,7 +41,7 @@ public class PaymentTracker {
         final long cutoffTimeMillis = currentTimeMillis - durationInMillis;
 
         AtomicInteger count = new AtomicInteger(0);
-        history.computeIfPresent(cardId, (_, deque) -> {
+        history.computeIfPresent(cardToken, (_, deque) -> {
             for (Transaction transaction : deque) {
                 if (transaction.timestampMillis() >= cutoffTimeMillis && transaction.timestampMillis() <= currentTimeMillis) {
                     count.incrementAndGet();
@@ -54,8 +57,8 @@ public class PaymentTracker {
         checkArgument(seconds > 0, "seconds should be greater than 0");
 
         final long cutoffTimeMillis = currentTimeMillis - seconds * 1000L;
-        for (String cardId : history.keySet()) {
-            history.computeIfPresent(cardId, (_, deque) -> {
+        for (String cardToken : history.keySet()) {
+            history.computeIfPresent(cardToken, (_, deque) -> {
                 deque.removeIf(t -> t.timestampMillis() < cutoffTimeMillis);
                 return deque.isEmpty() ? null : deque;
             });
