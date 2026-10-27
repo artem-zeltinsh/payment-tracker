@@ -1,66 +1,72 @@
 package org.lotus.edu;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Thread-safe payment tracker that keeps track of the payment history for each card token.
  */
 public class PaymentTracker {
-    private final ConcurrentMap<String, Deque<Transaction>> history;
+    private final ConcurrentMap<String, Deque<Payment>> history;
 
     public PaymentTracker() {
         this.history = new ConcurrentHashMap<>();
     }
 
-    private record Transaction(long timestampMillis, double amount) { }
+    record Payment(String cardToken, Instant timestamp, double amount) {
+        public Payment {
+            checkArgument(cardToken != null && !cardToken.isBlank(), "cardToken should not be blank");
+            checkArgument(timestamp != null, "timestamp should not be null");
+            checkArgument(amount >= 0, "amount should be greater than or equal to 0");
+        }
+    }
 
-    public void registerPayment(String cardToken, long timestampMillis, double amount) {
-        checkArgument(cardToken != null && !cardToken.isBlank(), "cardToken should not be blank");
-        checkArgument(timestampMillis > 0, "timestampMillis should be greater than 0");
-        checkArgument(amount > 0, "amount should be greater than or equal to 0");
+    public void registerPayment(Payment payment) {
+        checkArgument(payment != null, "payment should not be null");
 
-        Transaction transaction = new Transaction(timestampMillis, amount);
-        history.compute(cardToken, (_, deque) -> {
-            if (deque == null) {
-                deque = new ArrayDeque<>();
+        history.compute(payment.cardToken, (_, cardHistory) -> {
+            if (cardHistory == null) {
+                cardHistory = new ArrayDeque<>();
             }
-            deque.addLast(transaction);
-            return deque;
+            cardHistory.addLast(payment);
+            return cardHistory;
         });
     }
 
-    public int getCardCountInLastXSeconds(String cardToken, long currentTimeMillis, int seconds) {
-        checkArgument(cardToken != null && !cardToken.isBlank(), "cardToken should not be blank");
-        checkArgument(currentTimeMillis > 0, "currentTimeMillis should be greater than 0");
-        checkArgument(seconds > 0, "seconds should be greater than 0");
+    public int getCardCount(Payment payment, Duration duration) {
+        checkArgument(payment != null, "payment should not be null");
+        checkArgument(duration != null, "duration should not be null");
 
-        final long durationInMillis = seconds * 1000L;
-        final long cutoffTimeMillis = currentTimeMillis - durationInMillis;
+        final long durationInMillis = duration.toMillis();
+        final long cutoffTimeMillis = payment.timestamp.toEpochMilli() - durationInMillis;
 
-        AtomicInteger count = new AtomicInteger(0);
-        history.computeIfPresent(cardToken, (_, deque) -> {
-            for (Transaction transaction : deque) {
-                if (transaction.timestampMillis() >= cutoffTimeMillis && transaction.timestampMillis() <= currentTimeMillis) {
-                    count.incrementAndGet();
+        final int[] countHolder = new int[1];
+        history.computeIfPresent(payment.cardToken, (_, cardHistory) -> {
+            int count = 0;
+            for (Payment prevPayment : cardHistory) {
+                if (prevPayment.timestamp.toEpochMilli() >= cutoffTimeMillis
+                        && prevPayment.timestamp.toEpochMilli() <= payment.timestamp.toEpochMilli()) {
+                    count += 1;
                 }
             }
-            return deque;
+            countHolder[0] = count;
+            return cardHistory;
         });
-        return count.get();
+        return countHolder[0];
     }
 
-    public void evictOlderThanXSeconds(long currentTimeMillis, long seconds) {
-        checkArgument(currentTimeMillis > 0, "currentTimeMillis should be greater than 0");
-        checkArgument(seconds > 0, "seconds should be greater than 0");
+    public void evictOlderThan(Duration duration) {
+        checkArgument(duration != null, "duration should not be null");
 
-        final long cutoffTimeMillis = currentTimeMillis - seconds * 1000L;
+        final long currentTimeMillis = Instant.now().toEpochMilli();
+        final long cutoffTimeMillis = currentTimeMillis - duration.toMillis();
         for (String cardToken : history.keySet()) {
-            history.computeIfPresent(cardToken, (_, deque) -> {
-                deque.removeIf(t -> t.timestampMillis() < cutoffTimeMillis);
-                return deque.isEmpty() ? null : deque;
+            history.computeIfPresent(cardToken, (_, cardHistory) -> {
+                cardHistory.removeIf(p -> p.timestamp.toEpochMilli() < cutoffTimeMillis);
+                return cardHistory.isEmpty() ? null : cardHistory;
             });
         }
     }

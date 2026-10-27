@@ -1,96 +1,65 @@
 package org.lotus.edu;
 
 import org.junit.jupiter.api.Test;
+import org.lotus.edu.PaymentTracker.Payment;
 
-import static java.lang.System.currentTimeMillis;
+import java.time.Duration;
+import java.time.Instant;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class PaymentTrackerTest {
     @Test
-    public void whenCardIdIsEmpty_thenRegisterPaymentShouldThrowIllegalArgumentException() {
-        PaymentTracker paymentTracker = new PaymentTracker();
-        long currentTimeMillis = currentTimeMillis();
+    public void whenCardIdIsEmpty_thenPaymentConstructorShouldThrowIllegalArgumentException() {
+        Instant currentTime = Instant.now();
 
-        assertThrows(IllegalArgumentException.class,
-                () -> paymentTracker.registerPayment(null, currentTimeMillis, 0.0));
-        assertThrows(IllegalArgumentException.class,
-                () -> paymentTracker.registerPayment("", currentTimeMillis, 0.0));
+        assertThrows(IllegalArgumentException.class, () -> new Payment(null, currentTime, 5.0));
+        assertThrows(IllegalArgumentException.class, () -> new Payment(" ", currentTime, 10.0));
     }
 
     @Test
-    public void whenTimestampIsNegative_thenRegisterPaymentShouldThrowIllegalArgumentException() {
-        PaymentTracker paymentTracker = new PaymentTracker();
-
-        assertThrows(IllegalArgumentException.class,
-                () -> paymentTracker.registerPayment("cardId", -1, 0.0));
+    public void whenTimestampIsNull_thenPaymentConstructorShouldThrowIllegalArgumentException() {
+        assertThrows(IllegalArgumentException.class, () -> new Payment("cardId", null, 10));
     }
 
     @Test
-    public void whenAmountIsNegative_thenRegisterPaymentShouldThrowIllegalArgumentException() {
-        PaymentTracker paymentTracker = new PaymentTracker();
-        long currentTimeMillis = currentTimeMillis();
-
-        assertThrows(IllegalArgumentException.class,
-                () -> paymentTracker.registerPayment("cardId", currentTimeMillis, -1.0));
+    public void whenAmountIsNegative_thenPaymentConstructorShouldThrowIllegalArgumentException() {
+        assertThrows(IllegalArgumentException.class, () -> new Payment("cardId", Instant.now(), -1.0));
     }
 
     @Test
-    public void whenCardIdIsEmpty_thenGetCardCountInLastXSecondsShouldThrowIllegalArgumentException() {
+    public void whenPaymentIsNull_thenGetCardCountInLastXSecondsShouldThrowIllegalArgumentException() {
         PaymentTracker paymentTracker = new PaymentTracker();
-        long currentTimeMillis = currentTimeMillis();
-
         assertThrows(IllegalArgumentException.class,
-                () -> paymentTracker.getCardCountInLastXSeconds(null, currentTimeMillis, 10));
-        assertThrows(IllegalArgumentException.class,
-                () -> paymentTracker.getCardCountInLastXSeconds("", currentTimeMillis, 10));
+                () -> paymentTracker.getCardCount(null, Duration.ofSeconds(10)));
     }
 
     @Test
-    public void whenTimestampIsNegative_thenGetCardCountInLastXSecondsShouldThrowIllegalArgumentException() {
+    public void whenDurationIsNull_thenGetCardCountInLastXSecondsShouldThrowIllegalArgumentException() {
         PaymentTracker paymentTracker = new PaymentTracker();
-
         assertThrows(IllegalArgumentException.class,
-                () -> paymentTracker.getCardCountInLastXSeconds( "cardId", -1, 10));
-    }
-
-    @Test
-    public void whenSecondsIsNegative_thenGetCardCountInLastXSecondsShouldThrowIllegalArgumentException() {
-        PaymentTracker paymentTracker = new PaymentTracker();
-        long currentTimeMillis = currentTimeMillis();
-
-        assertThrows(IllegalArgumentException.class,
-                () -> paymentTracker.getCardCountInLastXSeconds("cardId", currentTimeMillis, 0));
+                () -> paymentTracker.getCardCount(new Payment("cardId", Instant.now(), 1), null));
     }
 
     @Test
     public void whenPaymentIsRegistered_thenGetCardCountInLastXSecondsShouldReturnCorrectCount() {
         PaymentTracker paymentTracker = new PaymentTracker();
-        long currentTimeMillis = currentTimeMillis();
+        Instant currentTime = Instant.now();
 
-        paymentTracker.registerPayment("1", currentTimeMillis, 10.0);
-        paymentTracker.registerPayment("1", currentTimeMillis, 2.0);
-        paymentTracker.registerPayment("2", currentTimeMillis, 1.5);
+        paymentTracker.registerPayment(new Payment("1", currentTime, 10.0));
+        paymentTracker.registerPayment(new Payment("1", currentTime, 2.0));
+        paymentTracker.registerPayment(new Payment("2", currentTime, 1.5));
 
-        assertEquals(2, paymentTracker.getCardCountInLastXSeconds("1", currentTimeMillis, 1));
-        assertEquals(1, paymentTracker.getCardCountInLastXSeconds("2", currentTimeMillis,2));
-        assertEquals(0, paymentTracker.getCardCountInLastXSeconds("3", currentTimeMillis, 2));
+        assertEquals(2, paymentTracker.getCardCount(new Payment("1", currentTime, 1), Duration.ofSeconds(2)));
+        assertEquals(1, paymentTracker.getCardCount(new Payment("2", currentTime,2), Duration.ofSeconds(2)));
+        assertEquals(0, paymentTracker.getCardCount(new Payment("3", currentTime, 2), Duration.ofSeconds(2)));
     }
 
     @Test
     public void whenSecondsIsNegative_thenEvictOlderThanXSecondsShouldThrowIllegalArgumentException() {
         PaymentTracker paymentTracker = new PaymentTracker();
-        long currentTimeMillis = currentTimeMillis();
-
         assertThrows(IllegalArgumentException.class,
-                () -> paymentTracker.evictOlderThanXSeconds(currentTimeMillis, 0));
-    }
-
-    @Test
-    public void whenTimestampIsNegative_thenEvictOlderThanXSecondsShouldThrowIllegalArgumentException() {
-        PaymentTracker paymentTracker = new PaymentTracker();
-
-        assertThrows(IllegalArgumentException.class,
-                () -> paymentTracker.evictOlderThanXSeconds( -1, 5));
+                () -> paymentTracker.evictOlderThan(null));
     }
 }
