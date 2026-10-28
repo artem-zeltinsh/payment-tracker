@@ -1,5 +1,6 @@
 package org.lotus.edu;
 
+import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
@@ -16,11 +17,12 @@ public class PaymentTracker {
         this.history = new ConcurrentHashMap<>();
     }
 
-    record Payment(String cardToken, Instant timestamp, double amount) {
+    record Payment(String cardToken, Instant timestamp, BigDecimal amount) {
         public Payment {
             checkArgument(cardToken != null && !cardToken.isBlank(), "cardToken should not be blank");
             checkArgument(timestamp != null, "timestamp should not be null");
-            checkArgument(amount >= 0, "amount should be greater than or equal to 0");
+            checkArgument(amount != null && amount.compareTo(BigDecimal.ZERO) >= 0,
+                    "amount should be greater than or equal to 0");
         }
     }
 
