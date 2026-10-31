@@ -4,10 +4,10 @@ import org.junit.jupiter.api.Test;
 import org.lotus.edu.PaymentTracker.Payment;
 
 import java.math.BigDecimal;
-import java.time.Duration;
 import java.time.Instant;
 
 import static java.math.BigDecimal.*;
+import static java.time.Duration.ofSeconds;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -31,40 +31,63 @@ public class PaymentTrackerTest {
     }
 
     @Test
-    public void whenPaymentIsNull_thenGetCardCountInLastXSecondsShouldThrowIllegalArgumentException() {
+    public void whenPaymentIsNull_thenGetCardCountShouldThrowIllegalArgumentException() {
         PaymentTracker paymentTracker = new PaymentTracker();
         assertThrows(IllegalArgumentException.class,
-                () -> paymentTracker.getCardCount(null, Duration.ofSeconds(10)));
+                () -> paymentTracker.getCardCount(null, ofSeconds(10)));
     }
 
     @Test
-    public void whenDurationIsNull_thenGetCardCountInLastXSecondsShouldThrowIllegalArgumentException() {
+    public void whenDurationIsNull_thenGetCardCountShouldThrowIllegalArgumentException() {
         PaymentTracker paymentTracker = new PaymentTracker();
         assertThrows(IllegalArgumentException.class,
                 () -> paymentTracker.getCardCount(new Payment("cardId", Instant.now(), ONE), null));
     }
 
     @Test
-    public void whenPaymentIsRegistered_thenGetCardCountInLastXSecondsShouldReturnCorrectCount() {
+    public void whenPaymentIsRegistered_thenGetCardCountShouldReturnCorrectCount() {
         PaymentTracker paymentTracker = new PaymentTracker();
         Instant currentTime = Instant.now();
 
-        paymentTracker.registerPayment(new Payment("1", currentTime, TEN));
-        paymentTracker.registerPayment(new Payment("1", currentTime, TWO));
+        paymentTracker.registerPayment(new Payment("1", currentTime.minusSeconds(1), TEN));
+        paymentTracker.registerPayment(new Payment("1", currentTime.minusSeconds(55), TWO));
+        paymentTracker.registerPayment(new Payment("1", currentTime.plusSeconds(1), ONE));
         paymentTracker.registerPayment(new Payment("2", currentTime, ONE));
 
         assertEquals(2,
-                paymentTracker.getCardCount(new Payment("1", currentTime, ONE), Duration.ofSeconds(2)));
+                paymentTracker.getCardCount(new Payment("1", currentTime, ONE), ofSeconds(55)));
         assertEquals(1,
-                paymentTracker.getCardCount(new Payment("2", currentTime, TWO), Duration.ofSeconds(2)));
+                paymentTracker.getCardCount(new Payment("2", currentTime, TWO), ofSeconds(2)));
         assertEquals(0,
-                paymentTracker.getCardCount(new Payment("3", currentTime, TWO), Duration.ofSeconds(2)));
+                paymentTracker.getCardCount(new Payment("3", currentTime, TWO), ofSeconds(2)));
     }
 
     @Test
-    public void whenSecondsIsNegative_thenEvictOlderThanXSecondsShouldThrowIllegalArgumentException() {
+    public void whenCutoffTimeIsNull_thenEvictOlderThanShouldThrowIllegalArgumentException() {
         PaymentTracker paymentTracker = new PaymentTracker();
         assertThrows(IllegalArgumentException.class,
                 () -> paymentTracker.evictOlderThan(null));
+    }
+
+    @Test
+    public void whenPaymentIsRegistered_thenEvictOlderThanShouldRemoveExpiredPayments() {
+        PaymentTracker paymentTracker = new PaymentTracker();
+
+        Instant currentTime = Instant.now();
+
+        paymentTracker.registerPayment(new Payment("1", currentTime.minusSeconds(1), ONE));
+        paymentTracker.registerPayment(new Payment("1", currentTime.minusSeconds(600), TWO));
+        paymentTracker.registerPayment(new Payment("1", currentTime.minusSeconds(3600), ONE));
+        paymentTracker.registerPayment(new Payment("1", currentTime.minusSeconds(3601), TEN));
+
+        paymentTracker.evictOlderThan(currentTime.minusSeconds(3600));
+        assertEquals(3, paymentTracker.getCardCount(new Payment("1", currentTime, ONE), ofSeconds(3600)));
+
+        paymentTracker.evictOlderThan(currentTime.minusSeconds(3600));
+        assertEquals(3, paymentTracker.getCardCount(new Payment("1", currentTime, ONE), ofSeconds(3600)));
+
+        paymentTracker.evictOlderThan(currentTime);
+        assertEquals(0, paymentTracker.getCardCount(new Payment("1", currentTime, ONE), ofSeconds(3600)));
+
     }
 }

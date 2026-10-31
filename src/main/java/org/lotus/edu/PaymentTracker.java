@@ -42,15 +42,13 @@ public class PaymentTracker {
         checkArgument(payment != null, "payment should not be null");
         checkArgument(duration != null, "duration should not be null");
 
-        final long durationInMillis = duration.toMillis();
-        final long cutoffTimeMillis = payment.timestamp.toEpochMilli() - durationInMillis;
+        final Instant cutoffTime = payment.timestamp.minus(duration);
 
         final int[] countHolder = new int[1];
         history.computeIfPresent(payment.cardToken, (_, cardHistory) -> {
             int count = 0;
             for (Payment prevPayment : cardHistory) {
-                if (prevPayment.timestamp.toEpochMilli() >= cutoffTimeMillis
-                        && prevPayment.timestamp.toEpochMilli() <= payment.timestamp.toEpochMilli()) {
+                if (!prevPayment.timestamp.isBefore(cutoffTime) && !prevPayment.timestamp.isAfter(payment.timestamp)) {
                     count += 1;
                 }
             }
@@ -60,14 +58,12 @@ public class PaymentTracker {
         return countHolder[0];
     }
 
-    public void evictOlderThan(Duration duration) {
-        checkArgument(duration != null, "duration should not be null");
+    public void evictOlderThan(Instant cutoffTime) {
+        checkArgument(cutoffTime != null, "cutoffTime should not be null");
 
-        final long currentTimeMillis = Instant.now().toEpochMilli();
-        final long cutoffTimeMillis = currentTimeMillis - duration.toMillis();
         for (String cardToken : history.keySet()) {
             history.computeIfPresent(cardToken, (_, cardHistory) -> {
-                cardHistory.removeIf(p -> p.timestamp.toEpochMilli() < cutoffTimeMillis);
+                cardHistory.removeIf(p -> p.timestamp.isBefore(cutoffTime));
                 return cardHistory.isEmpty() ? null : cardHistory;
             });
         }
