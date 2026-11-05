@@ -5,6 +5,9 @@ import org.lotus.edu.PaymentTracker.Payment;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import static java.math.BigDecimal.*;
 import static java.time.Duration.ofSeconds;
@@ -88,6 +91,37 @@ public class PaymentTrackerTest {
 
         paymentTracker.evictOlderThan(currentTime);
         assertEquals(0, paymentTracker.getCardCount(new Payment("1", currentTime, ONE), ofSeconds(3600)));
+    }
 
+    @Test
+    public void whenConcurrentPaymentsAreRegistered_thenAllRegistrationsAreCounted() throws Exception {
+        PaymentTracker paymentTracker = new PaymentTracker();
+
+        int threadCount = 8;
+        int paymentPerThread = 100;
+
+        Instant currentTime = Instant.now();
+
+        CountDownLatch startSignal = new CountDownLatch(1);
+        CountDownLatch doneSignal = new CountDownLatch(threadCount);
+
+        try (ExecutorService pool = Executors.newFixedThreadPool(threadCount)) {
+            for (int i = 0; i < threadCount; i++) {
+                pool.submit(() -> {
+                    startSignal.await();
+                    for (int j = 0; j < paymentPerThread; j++) {
+                        Instant paymentTime = currentTime.minusMillis(1000 - j);
+                        paymentTracker.registerPayment(new Payment("1", paymentTime, ONE));
+                    }
+                    doneSignal.countDown();
+                    return null;
+                });
+            }
+
+            startSignal.countDown();
+            doneSignal.await();
+        }
+
+        assertEquals(threadCount * paymentPerThread, paymentTracker.getCardCount(new Payment("1", currentTime, ONE), ofSeconds(1)));
     }
 }
