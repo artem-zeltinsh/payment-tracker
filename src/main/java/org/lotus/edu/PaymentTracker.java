@@ -7,6 +7,8 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 /**
  * Thread-safe payment tracker that keeps track of the payment history for each card token.
  */
@@ -40,7 +42,7 @@ public class PaymentTracker {
 
     public int getCardCount(Payment payment, Duration duration) {
         checkArgument(payment != null, "payment should not be null");
-        checkArgument(duration != null, "duration should not be null");
+        checkArgument(duration != null && duration.isPositive(), "duration should be positive");
 
         final Instant cutoffTime = payment.timestamp.minus(duration);
 
@@ -66,12 +68,6 @@ public class PaymentTracker {
                 cardHistory.removeIf(p -> p.timestamp.isBefore(cutoffTime));
                 return cardHistory.isEmpty() ? null : cardHistory;
             });
-        }
-    }
-
-    private static void checkArgument(boolean expression, String errorMessage) {
-        if (!expression) {
-            throw new IllegalArgumentException(errorMessage);
         }
     }
 }

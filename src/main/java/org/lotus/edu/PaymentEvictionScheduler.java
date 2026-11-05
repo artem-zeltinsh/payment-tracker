@@ -5,6 +5,7 @@ import java.time.Instant;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 public final class PaymentEvictionScheduler implements AutoCloseable {
@@ -13,6 +14,10 @@ public final class PaymentEvictionScheduler implements AutoCloseable {
     private final Duration retention;
 
     public PaymentEvictionScheduler(PaymentTracker tracker, Duration retention, Duration interval) {
+        checkArgument(tracker != null, "tracker should not be null");
+        checkArgument(retention != null && retention.isPositive(), "retention should be positive");
+        checkArgument(interval != null && interval.isPositive(), "interval should be positive");
+
         this.tracker = tracker;
         this.scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
             Thread thread = new Thread(r, "payment-eviction-thread");
