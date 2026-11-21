@@ -4,7 +4,7 @@ Payment tracker to keep track of the payment history for fraud prevention veloci
 ## Time and Space Complexity
 * N - number of unique cards
 * M - number of payment events
-* K - avg. number of payment events per card
+* K - avg. number of payment events per card (K = M/N)
 
 | Approach                  | Register       | Get count     |  Eviction  |   Space   | Concurrency Mechanism         |
 |---------------------------|--------------- |---------------|------------|-----------|-------------------------------|
