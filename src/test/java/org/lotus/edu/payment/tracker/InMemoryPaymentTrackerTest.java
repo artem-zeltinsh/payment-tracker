@@ -1,6 +1,7 @@
-package org.lotus.edu;
+package org.lotus.edu.payment.tracker;
 
 import org.junit.jupiter.api.Test;
+import org.lotus.edu.payment.Payment;
 
 import java.time.Instant;
 import java.util.ArrayList;

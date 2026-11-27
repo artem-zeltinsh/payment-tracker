@@ -1,4 +1,4 @@
-package org.lotus.edu;
+package org.lotus.edu.payment;
 
 import org.junit.jupiter.api.Test;
 

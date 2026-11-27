@@ -1,4 +1,4 @@
-package org.lotus.edu;
+package org.lotus.edu.payment.tracker;
 
 import java.time.Duration;
 import java.time.Instant;

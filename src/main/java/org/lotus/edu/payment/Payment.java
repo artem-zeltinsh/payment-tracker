@@ -1,4 +1,4 @@
-package org.lotus.edu;
+package org.lotus.edu.payment;
 
 import java.math.BigDecimal;
 import java.time.Instant;
