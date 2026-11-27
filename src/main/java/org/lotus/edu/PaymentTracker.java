@@ -1,6 +1,5 @@
 package org.lotus.edu;
 
-import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
@@ -19,19 +18,10 @@ public class PaymentTracker {
         this.history = new ConcurrentHashMap<>();
     }
 
-    record Payment(String cardToken, Instant timestamp, BigDecimal amount) {
-        public Payment {
-            checkArgument(cardToken != null && !cardToken.isBlank(), "cardToken should not be blank");
-            checkArgument(timestamp != null, "timestamp should not be null");
-            checkArgument(amount != null && amount.compareTo(BigDecimal.ZERO) >= 0,
-                    "amount should be greater than or equal to 0");
-        }
-    }
-
     public void register(Payment payment) {
         checkArgument(payment != null, "payment should not be null");
 
-        history.compute(payment.cardToken, (_, cardHistory) -> {
+        history.compute(payment.cardToken(), (_, cardHistory) -> {
             if (cardHistory == null) {
                 cardHistory = new ArrayDeque<>();
             }
@@ -44,13 +34,13 @@ public class PaymentTracker {
         checkArgument(payment != null, "payment should not be null");
         checkArgument(duration != null && duration.isPositive(), "duration should be positive");
 
-        final Instant cutoffTime = payment.timestamp.minus(duration);
+        final Instant cutoffTime = payment.timestamp().minus(duration);
 
         final int[] countHolder = new int[1];
-        history.computeIfPresent(payment.cardToken, (_, cardHistory) -> {
+        history.computeIfPresent(payment.cardToken(), (_, cardHistory) -> {
             int count = 0;
             for (Payment prevPayment : cardHistory) {
-                if (!prevPayment.timestamp.isBefore(cutoffTime) && !prevPayment.timestamp.isAfter(payment.timestamp)) {
+                if (!prevPayment.timestamp().isBefore(cutoffTime) && !prevPayment.timestamp().isAfter(payment.timestamp())) {
                     count += 1;
                 }
             }
@@ -65,7 +55,7 @@ public class PaymentTracker {
 
         for (String cardToken : history.keySet()) {
             history.computeIfPresent(cardToken, (_, cardHistory) -> {
-                cardHistory.removeIf(p -> p.timestamp.isBefore(cutoffTime));
+                cardHistory.removeIf(p -> p.timestamp().isBefore(cutoffTime));
                 return cardHistory.isEmpty() ? null : cardHistory;
             });
         }

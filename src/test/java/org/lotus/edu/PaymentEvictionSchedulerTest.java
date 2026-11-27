@@ -1,7 +1,6 @@
 package org.lotus.edu;
 
 import org.junit.jupiter.api.Test;
-import org.lotus.edu.PaymentTracker.Payment;
 
 import java.time.Duration;
 import java.time.Instant;
