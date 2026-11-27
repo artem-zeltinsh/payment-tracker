@@ -28,7 +28,7 @@ public class PaymentTracker {
         }
     }
 
-    public void registerPayment(Payment payment) {
+    public void register(Payment payment) {
         checkArgument(payment != null, "payment should not be null");
 
         history.compute(payment.cardToken, (_, cardHistory) -> {

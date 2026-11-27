@@ -52,10 +52,10 @@ public class PaymentTrackerTest {
         PaymentTracker paymentTracker = new PaymentTracker();
         Instant currentTime = Instant.now();
 
-        paymentTracker.registerPayment(new Payment("1", currentTime.minusSeconds(1), TEN));
-        paymentTracker.registerPayment(new Payment("1", currentTime.minusSeconds(55), TWO));
-        paymentTracker.registerPayment(new Payment("1", currentTime.plusSeconds(1), ONE));
-        paymentTracker.registerPayment(new Payment("2", currentTime, ONE));
+        paymentTracker.register(new Payment("1", currentTime.minusSeconds(1), TEN));
+        paymentTracker.register(new Payment("1", currentTime.minusSeconds(55), TWO));
+        paymentTracker.register(new Payment("1", currentTime.plusSeconds(1), ONE));
+        paymentTracker.register(new Payment("2", currentTime, ONE));
 
         assertEquals(2,
                 paymentTracker.getCardCount(new Payment("1", currentTime, ONE), ofSeconds(55)));
@@ -78,10 +78,10 @@ public class PaymentTrackerTest {
 
         Instant currentTime = Instant.now();
 
-        paymentTracker.registerPayment(new Payment("1", currentTime.minusSeconds(1), ONE));
-        paymentTracker.registerPayment(new Payment("1", currentTime.minusSeconds(600), TWO));
-        paymentTracker.registerPayment(new Payment("1", currentTime.minusSeconds(3600), ONE));
-        paymentTracker.registerPayment(new Payment("1", currentTime.minusSeconds(3601), TEN));
+        paymentTracker.register(new Payment("1", currentTime.minusSeconds(1), ONE));
+        paymentTracker.register(new Payment("1", currentTime.minusSeconds(600), TWO));
+        paymentTracker.register(new Payment("1", currentTime.minusSeconds(3600), ONE));
+        paymentTracker.register(new Payment("1", currentTime.minusSeconds(3601), TEN));
 
         paymentTracker.evictOlderThan(currentTime.minusSeconds(3600));
         assertEquals(3, paymentTracker.getCardCount(new Payment("1", currentTime, ONE), ofSeconds(3600)));
@@ -112,7 +112,7 @@ public class PaymentTrackerTest {
                     startSignal.await();
                     for (int j = 0; j < paymentPerThread; j++) {
                         Instant paymentTime = currentTime.minusMillis(1000 - j);
-                        paymentTracker.registerPayment(new Payment("1", paymentTime, ONE));
+                        paymentTracker.register(new Payment("1", paymentTime, ONE));
                     }
                     return null;
                 }));
