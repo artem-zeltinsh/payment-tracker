@@ -12,24 +12,24 @@ import static java.time.Duration.ofSeconds;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-public class PaymentTrackerTest {
+public class InMemoryPaymentTrackerTest {
     @Test
     public void whenPaymentIsNull_thenGetCardCountShouldThrowIllegalArgumentException() {
-        PaymentTracker paymentTracker = new PaymentTracker();
+        PaymentTracker paymentTracker = new InMemoryPaymentTracker();
         assertThrows(IllegalArgumentException.class,
                 () -> paymentTracker.getCardCount(null, ofSeconds(10)));
     }
 
     @Test
     public void whenDurationIsNull_thenGetCardCountShouldThrowIllegalArgumentException() {
-        PaymentTracker paymentTracker = new PaymentTracker();
+        PaymentTracker paymentTracker = new InMemoryPaymentTracker();
         assertThrows(IllegalArgumentException.class,
                 () -> paymentTracker.getCardCount(new Payment("cardId", Instant.now(), ONE), null));
     }
 
     @Test
     public void whenPaymentIsRegistered_thenGetCardCountShouldReturnCorrectCount() {
-        PaymentTracker paymentTracker = new PaymentTracker();
+        PaymentTracker paymentTracker = new InMemoryPaymentTracker();
         Instant currentTime = Instant.now();
 
         paymentTracker.register(new Payment("1", currentTime.minusSeconds(1), TEN));
@@ -47,14 +47,14 @@ public class PaymentTrackerTest {
 
     @Test
     public void whenCutoffTimeIsNull_thenEvictOlderThanShouldThrowIllegalArgumentException() {
-        PaymentTracker paymentTracker = new PaymentTracker();
+        PaymentTracker paymentTracker = new InMemoryPaymentTracker();
         assertThrows(IllegalArgumentException.class,
                 () -> paymentTracker.evictOlderThan(null));
     }
 
     @Test
     public void whenPaymentIsRegistered_thenEvictOlderThanShouldRemoveExpiredPayments() {
-        PaymentTracker paymentTracker = new PaymentTracker();
+        PaymentTracker paymentTracker = new InMemoryPaymentTracker();
 
         Instant currentTime = Instant.now();
 
@@ -75,7 +75,7 @@ public class PaymentTrackerTest {
 
     @Test
     public void whenConcurrentPaymentsAreRegistered_thenAllRegistrationsAreCounted() throws Exception {
-        PaymentTracker paymentTracker = new PaymentTracker();
+        PaymentTracker paymentTracker = new InMemoryPaymentTracker();
 
         int threadCount = 8;
         int paymentPerThread = 100;

@@ -2,62 +2,30 @@ package org.lotus.edu;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 
-import static com.google.common.base.Preconditions.checkArgument;
+public interface PaymentTracker {
 
-/**
- * Thread-safe payment tracker that keeps track of the payment history for each card token.
- */
-public class PaymentTracker {
-    private final ConcurrentMap<String, Deque<Payment>> history;
+    /**
+     * Registers the specified payment in the tracker so it can be included in later card activity counts.
+     *
+     * @param payment the payment to register; must not be null
+     */
+    void register(Payment payment);
 
-    public PaymentTracker() {
-        this.history = new ConcurrentHashMap<>();
-    }
+    /**
+     * Returns the number of registered payments for the same card token
+     * whose timestamps fall within the time window ending at the payment timestamp.
+     *
+     * @param payment the payment that provides the card token and end timestamp for the count; must not be null
+     * @param duration the positive duration before the payment timestamp to include in the count; must not be null
+     * @return the number of registered payments for the same card token within the specified duration
+     */
+    int getCardCount(Payment payment, Duration duration);
 
-    public void register(Payment payment) {
-        checkArgument(payment != null, "payment should not be null");
-
-        history.compute(payment.cardToken(), (_, cardHistory) -> {
-            if (cardHistory == null) {
-                cardHistory = new ArrayDeque<>();
-            }
-            cardHistory.addLast(payment);
-            return cardHistory;
-        });
-    }
-
-    public int getCardCount(Payment payment, Duration duration) {
-        checkArgument(payment != null, "payment should not be null");
-        checkArgument(duration != null && duration.isPositive(), "duration should be positive");
-
-        final Instant cutoffTime = payment.timestamp().minus(duration);
-
-        final int[] countHolder = new int[1];
-        history.computeIfPresent(payment.cardToken(), (_, cardHistory) -> {
-            int count = 0;
-            for (Payment prevPayment : cardHistory) {
-                if (!prevPayment.timestamp().isBefore(cutoffTime) && !prevPayment.timestamp().isAfter(payment.timestamp())) {
-                    count += 1;
-                }
-            }
-            countHolder[0] = count;
-            return cardHistory;
-        });
-        return countHolder[0];
-    }
-
-    public void evictOlderThan(Instant cutoffTime) {
-        checkArgument(cutoffTime != null, "cutoffTime should not be null");
-
-        for (String cardToken : history.keySet()) {
-            history.computeIfPresent(cardToken, (_, cardHistory) -> {
-                cardHistory.removeIf(p -> p.timestamp().isBefore(cutoffTime));
-                return cardHistory.isEmpty() ? null : cardHistory;
-            });
-        }
-    }
+    /**
+     * Evicts registered payments whose timestamps are before the specified cutoff time.
+     *
+     * @param cutoffTime the cutoff time used to determine which payments to evict; must not be null
+     */
+    void evictOlderThan(Instant cutoffTime);
 }

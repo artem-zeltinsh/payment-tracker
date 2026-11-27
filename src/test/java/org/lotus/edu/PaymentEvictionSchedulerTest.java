@@ -15,7 +15,7 @@ public class PaymentEvictionSchedulerTest {
     public void testPaymentEvictionScheduler() throws Exception {
         Instant currentTime = Instant.now();
 
-        PaymentTracker paymentTracker = new PaymentTracker();
+        PaymentTracker paymentTracker = new InMemoryPaymentTracker();
         paymentTracker.register(new Payment("card-1", currentTime.minusSeconds(1), ONE));
         paymentTracker.register(new Payment("card-1", currentTime, ONE));
 
